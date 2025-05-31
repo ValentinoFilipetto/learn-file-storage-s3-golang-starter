@@ -125,7 +125,7 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", cfg.handlerReset)
 
 	srv := &http.Server{
-		Addr:    ":" + port,
+		Addr:    "127.0.0.1:8091",
 		Handler: mux,
 	}
 

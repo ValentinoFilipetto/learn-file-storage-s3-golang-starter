@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
@@ -78,8 +80,18 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// we fill a 32 bit slice with random data to create a new url every time.
+	// this is used to avoid video thumbnail caching optimally server-side.
+	key := make([]byte, 32)
+	_, err = rand.Read(key)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error while generating random bytes", nil)
+		return
+	}
+	encodedKey := base64.RawURLEncoding.EncodeToString(key)
+
 	// create filepath to store imageData in the filesystem
-	filepath := filepath.Join(cfg.assetsRoot, fmt.Sprintf("%s.%s", videoID.String(), strings.Split(mediaType, "/")[1]))
+	filepath := filepath.Join(cfg.assetsRoot, fmt.Sprintf("%s.%s", encodedKey, strings.Split(mediaType, "/")[1]))
 
 	// create empty new file in the location indicated by the filepath
 	emptyFile, err := os.Create(filepath)

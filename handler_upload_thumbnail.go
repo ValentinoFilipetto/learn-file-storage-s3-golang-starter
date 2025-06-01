@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -55,13 +56,16 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// read the flow of data from `file` and return it as an array of bytes.
-	// file is an io.Reader.
-	// imageData, err := io.ReadAll(file)
-	// if err != nil {
-	// 	respondWithError(w, http.StatusInternalServerError, "Error reading file", err)
-	// 	return
-	// }
+	// get media type from content type header
+	mediaType, _, err = mime.ParseMediaType(mediaType)
+	if mediaType != "image/jpeg" && mediaType != "image/png" {
+		respondWithError(w, http.StatusInternalServerError, "Wrong media type received", nil)
+		return
+	}
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error while getting the media type", nil)
+		return
+	}
 
 	// get video by id
 	video, err  := cfg.db.GetVideo(videoID)

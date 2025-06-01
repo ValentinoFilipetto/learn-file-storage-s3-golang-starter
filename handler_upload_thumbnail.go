@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"io"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
 )
@@ -36,7 +39,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	// maxMemory is needed to have a constraint of the size of what we are processing.
 	const maxMemory = 10 << 20
 	r.ParseMultipartForm(maxMemory)
-	
+
 	// we specifically try and get the thumbnail
 	file, header, err := r.FormFile("thumbnail")
 	if err != nil {
@@ -51,15 +54,15 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusBadRequest, "Missing Content-Type for thumbnail", nil)
 		return
 	}
-	
+
 	// read the flow of data from `file` and return it as an array of bytes.
 	// file is an io.Reader.
-	imageData, err := io.ReadAll(file)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error reading file", err)
-		return
-	}
-	
+	// imageData, err := io.ReadAll(file)
+	// if err != nil {
+	// 	respondWithError(w, http.StatusInternalServerError, "Error reading file", err)
+	// 	return
+	// }
+
 	// get video by id
 	video, err  := cfg.db.GetVideo(videoID)
 	if err != nil {
@@ -70,29 +73,30 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusUnauthorized, "Not authorized to update this video", nil)
 		return
 	}
-	
-	// create filepath to store imageData in the filesystem
-	filepath := filepath.Join(cfg.assetsRoot, videoID)
 
-	fmt.Println(filepath)
-	
-	// create empty new file
-	emptyFile, err := os.Create(fmt.Sprintf("%s.%s", videoID, mediaType))
+	// create filepath to store imageData in the filesystem
+	filepath := filepath.Join(cfg.assetsRoot, fmt.Sprintf("%s.%s", videoID.String(), strings.Split(mediaType, "/")[1]))
+
+	// create empty new file in the location indicated by the filepath
+	emptyFile, err := os.Create(filepath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create file", err)
 		return
 	}
+	// file is a stream, hence eventually it will need to be closed.
+	defer emptyFile.Close()
 
-	newFile, err := io.Copy(emptyFile, file)
+	// copy file content into new empty file
+	_, err = io.Copy(emptyFile, file)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not copy content to file", err)
 		return
 	}
 
-	thumbnail_url := fmt.Sprintf("http://localhost:%s/assets/%s.%s", cfg.port, videoID, mediaType)
+	thumbnail_url := fmt.Sprintf("http://localhost:%s/%s", cfg.port, filepath)
 
 	video.ThumbnailURL = &thumbnail_url
-	
+
 	// we update the video with a new thumbnail URL, mot the image itself for now
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {

@@ -90,7 +90,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// file is a stream, hence eventually it will need to be closed and removed.
-	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
 
 	// copy file content into new empty file
@@ -134,4 +134,6 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update video", err)
 		return
 	}
+
+	respondWithJSON(w, http.StatusOK, video)
 }

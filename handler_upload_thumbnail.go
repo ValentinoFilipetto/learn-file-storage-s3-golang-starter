@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	const maxMemory = 10 << 20
 	r.ParseMultipartForm(maxMemory)
 
-	// we specifically try and get the thumbnail
+	// we specifically try and get the thumbnail as a multipart file
 	file, header, err := r.FormFile("thumbnail")
 	if err != nil {
 	       respondWithError(w, http.StatusBadRequest, "Unable to parse form file", err)
@@ -69,10 +69,10 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// get video by id
-	video, err  := cfg.db.GetVideo(videoID)
+	// get video by ID
+	video, err := cfg.db.GetVideo(videoID)
 	if err != nil {
-       		respondWithError(w, http.StatusBadRequest, "Could not find video", err)
+       	respondWithError(w, http.StatusBadRequest, "Could not find video", err)
 		return
 	}
 	if video.UserID != userID {
@@ -113,7 +113,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 
 	video.ThumbnailURL = &thumbnail_url
 
-	// we update the video with a new thumbnail URL, mot the image itself for now
+	// we update the video with a new thumbnail URL, not the image itself for now
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update video", err)

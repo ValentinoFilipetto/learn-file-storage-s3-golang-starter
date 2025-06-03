@@ -122,6 +122,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	_, err = cfg.s3Client.PutObject(r.Context(), &params)
 	if err != nil {
+		fmt.Printf("S3 PutObject error: %v\n", err)
 		respondWithError(w, http.StatusInternalServerError, "Error while putting object to S3", nil)
 		return
 	}

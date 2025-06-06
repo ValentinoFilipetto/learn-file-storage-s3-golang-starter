@@ -103,6 +103,21 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	// this will allow us to read the file again from the beginning
 	tmpFile.Seek(0, io.SeekStart)
 
+	aspectRatio, err := getVideoAspectRatio("./tubely-upload.mp4")
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not get the aspect ratio of video", err)
+		return
+	}
+
+	var prefix string
+	if aspectRatio == "16:9" {
+		prefix = "landscape"
+	} else if aspectRatio == "9:16" {
+		prefix = "portrait"
+	} else {
+		prefix = "other"
+	}
+
 	key := make([]byte, 32)
 	_, err = rand.Read(key)
 	if err != nil {
@@ -110,7 +125,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	encodedKey := hex.EncodeToString(key)
-	myKey := fmt.Sprintf("%s.%s", encodedKey, strings.Split(mediaType, "/")[1])
+	myKey := fmt.Sprintf("%s%s.%s", prefix, encodedKey, strings.Split(mediaType, "/")[1])
 
 	// we put the video in the S3 bucket
 	params := s3.PutObjectInput{

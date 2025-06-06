@@ -1,10 +1,10 @@
 package main
 
 import (
-   "os/exec"
-   "bytes"
-   "encoding/json"
-   "log"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os/exec"
 )
 
 type MediaInfo struct {
@@ -21,20 +21,37 @@ func getVideoAspectRatio(filePath string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-           log.Fatal(err)
+        return "", fmt.Errorf("ffprobe error: %w", err)
 	}
 
 	var commandOutput MediaInfo
 	err = json.Unmarshal(stdout.Bytes(), &commandOutput)
 	if err != nil {
-	   log.Fatal("Failed to unmarshal JSON: %v", err)
+	   return "", fmt.Errorf("Failed to unmarshal JSON: %w", err)
 	}
 
-	if len(commandOutpout.Streams) == 0 {
-	    return "", fmt.Error("No streams found in media file: %v", err)
+	if len(commandOutput.Streams) == 0 {
+		return "", fmt.Errorf("No streams found in media file: %v", err)
 	}
-        
-	var width, height int
-	width = commandOutput.Streams[0].Width
-	height = commandOutput.Streams[0].Height
+
+	width := commandOutput.Streams[0].Width
+	height := commandOutput.Streams[0].Height
+
+	if width == 0 || height == 0 {
+        return "", fmt.Errorf("Invalid width or height")
+    }
+
+	divisor := gcd(width, height)
+	aspectW := width / divisor
+	aspectH := height / divisor
+
+	return fmt.Sprintf("%d:%d", aspectW, aspectH), nil
+}
+
+// gcd returns the greatest common divisor of a and b
+func gcd(a, b int) int {
+    if b == 0 {
+        return a
+    }
+    return gcd(b, a % b)
 }

@@ -3,53 +3,47 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math"
 	"os/exec"
 )
 
-type MediaInfo struct {
-           Streams []struct {
-                Width  int `json:"width"`
-                Height int `json:"height"`
-            } `json:"streams"`
-        }
-
 func getVideoAspectRatio(filePath string) (string, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
+	cmd := exec.Command("ffprobe",
+		"-v", "error",
+		"-print_format", "json",
+		"-show_streams",
+		filePath,
+	)
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
-	err := cmd.Run()
-	if err != nil {
-        return "", fmt.Errorf("ffprobe error: %w", err)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("ffprobe error: %v", err)
 	}
 
-	var commandOutput MediaInfo
-	err = json.Unmarshal(stdout.Bytes(), &commandOutput)
-	if err != nil {
-	   return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
+	var output struct {
+		Streams []struct {
+			Width  int `json:"width"`
+			Height int `json:"height"`
+		} `json:"streams"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		return "", fmt.Errorf("could not parse ffprobe output: %v", err)
 	}
 
-	if len(commandOutput.Streams) == 0 {
-		return "", fmt.Errorf("no streams found in media file: %v", err)
+	if len(output.Streams) == 0 {
+		return "", errors.New("no video streams found")
 	}
 
-	width := commandOutput.Streams[0].Width
-	height := commandOutput.Streams[0].Height
+	width := output.Streams[0].Width
+	height := output.Streams[0].Height
 
-	if width == 0 || height == 0 {
-        return "", fmt.Errorf("invalid width or height")
-    }
-
-	aspectRatio := float64(width) / float64(height)
-	tolerance := 0.05
-
-	if math.Abs(aspectRatio - 16.0 / 9.0) < tolerance {
+	if width == 16*height/9 {
 		return "16:9", nil
-	} else if math.Abs(aspectRatio - 9.0 / 16.0) < tolerance {
+	} else if height == 16*width/9 {
 		return "9:16", nil
 	}
-
 	return "other", nil
 }

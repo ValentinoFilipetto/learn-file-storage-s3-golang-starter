@@ -83,7 +83,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	// create temporary file in the location indicated by the filepath
-	// "" as directory uses the system default
+	// "" as directory uses the system default, e.g. /tmp/
 	tmpFile, err := os.CreateTemp("", "tubely-upload.mp4")
 	fmt.Println(tmpFile.Name())
 	if err != nil {
@@ -111,7 +111,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	var prefix string
-	if aspectRatio == "16:9" {
+    if aspectRatio == "16:9" {
 		prefix = "landscape"
 	} else if aspectRatio == "9:16" {
 		prefix = "portrait"

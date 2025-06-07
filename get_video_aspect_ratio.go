@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os/exec"
 )
 
@@ -15,7 +16,7 @@ type MediaInfo struct {
         }
 
 func getVideoAspectRatio(filePath string) (string, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-print-format", "json", "show_streams", filePath)
+	cmd := exec.Command("ffprobe", "-v", "error", "-print-format", "json", "-show_streams", filePath)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
@@ -27,31 +28,28 @@ func getVideoAspectRatio(filePath string) (string, error) {
 	var commandOutput MediaInfo
 	err = json.Unmarshal(stdout.Bytes(), &commandOutput)
 	if err != nil {
-	   return "", fmt.Errorf("Failed to unmarshal JSON: %w", err)
+	   return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
 	if len(commandOutput.Streams) == 0 {
-		return "", fmt.Errorf("No streams found in media file: %v", err)
+		return "", fmt.Errorf("no streams found in media file: %v", err)
 	}
 
 	width := commandOutput.Streams[0].Width
 	height := commandOutput.Streams[0].Height
 
 	if width == 0 || height == 0 {
-        return "", fmt.Errorf("Invalid width or height")
+        return "", fmt.Errorf("invalid width or height")
     }
 
-	divisor := gcd(width, height)
-	aspectW := width / divisor
-	aspectH := height / divisor
+	aspectRatio := float64(width) / float64(height)
+	tolerance := 0.05
 
-	return fmt.Sprintf("%d:%d", aspectW, aspectH), nil
-}
+	if math.Abs(aspectRatio - 16.0 / 9.0) < tolerance {
+		return "16:9", nil
+	} else if math.Abs(aspectRatio - 9.0 / 16.0) < tolerance {
+		return "9:16", nil
+	}
 
-// gcd returns the greatest common divisor of a and b
-func gcd(a, b int) int {
-    if b == 0 {
-        return a
-    }
-    return gcd(b, a % b)
+	return "other", nil
 }

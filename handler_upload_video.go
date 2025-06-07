@@ -91,8 +91,8 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// file is a stream, hence eventually it will need to be closed and removed.
-	defer tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
 
 	// copy file content into new empty file
 	_, err = io.Copy(tmpFile, multipartVideo)
@@ -102,7 +102,11 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	// this will allow us to read the file again from the beginning
-	tmpFile.Seek(0, io.SeekStart)
+	_, err = tmpFile.Seek(0, io.SeekStart)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not reset file pointer", err)
+		return
+	}
 
 	aspectRatio, err := getVideoAspectRatio(tmpFile.Name())
 	if err != nil {
@@ -111,7 +115,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	var prefix string
-    if aspectRatio == "16:9" {
+	if aspectRatio == "16:9" {
 		prefix = "landscape"
 	} else if aspectRatio == "9:16" {
 		prefix = "portrait"

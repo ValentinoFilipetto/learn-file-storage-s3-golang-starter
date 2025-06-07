@@ -85,6 +85,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	// create temporary file in the location indicated by the filepath
 	// "" as directory uses the system default
 	tmpFile, err := os.CreateTemp("", "tubely-upload.mp4")
+	fmt.Println(tmpFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create temporary file", err)
 		return
@@ -103,7 +104,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	// this will allow us to read the file again from the beginning
 	tmpFile.Seek(0, io.SeekStart)
 
-	aspectRatio, err := getVideoAspectRatio("./tubely-upload.mp4")
+	aspectRatio, err := getVideoAspectRatio(tmpFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not get the aspect ratio of video", err)
 		return

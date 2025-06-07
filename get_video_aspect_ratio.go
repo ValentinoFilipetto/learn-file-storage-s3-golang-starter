@@ -16,7 +16,7 @@ type MediaInfo struct {
         }
 
 func getVideoAspectRatio(filePath string) (string, error) {
-	cmd := exec.Command("ffprobe", "-v", "error", "-print-format", "json", "-show_streams", filePath)
+	cmd := exec.Command("ffprobe", "-v", "error", "-print_format", "json", "-show_streams", filePath)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
